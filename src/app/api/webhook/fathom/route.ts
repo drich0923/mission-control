@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { taskOperations } from '../../../../../lib/supabase';
 
 // Force dynamic for webhook endpoint
 export const dynamic = 'force-dynamic';
@@ -117,8 +118,32 @@ export async function POST(request: NextRequest) {
       finalCallDate
     );
     
-    // Store tasks (in a real app, this would go to a database)
-    // For now, we'll return them and let the frontend handle storage
+    // Save tasks to database
+    const savedTasks = [];
+    for (const task of extractedTasks) {
+      try {
+        const savedTask = await taskOperations.createTask({
+          title: task.title,
+          description: task.description,
+          status: 'from-calls',
+          priority: task.priority as 'LOW' | 'MEDIUM' | 'HIGH',
+          assignee: task.assignee as 'charlie' | 'dylan' | null,
+          due_date: task.dueDate || undefined,
+          tags: task.tags,
+          source: 'fathom_call',
+          source_data: {
+            call_title: finalCallTitle,
+            call_date: finalCallDate,
+            call_url: recordingUrl,
+            transcript_excerpt: task.description
+          }
+        });
+        savedTasks.push(savedTask);
+      } catch (error) {
+        console.error('Error saving task:', error);
+        // Continue with other tasks even if one fails
+      }
+    }
     
     const response = {
       success: true,
@@ -131,8 +156,9 @@ export async function POST(request: NextRequest) {
         recordingUrl,
         transcript: transcript.substring(0, 500) + '...' // Truncated for response
       },
-      tasks: extractedTasks,
-      tasksCreated: extractedTasks.length,
+      tasks: savedTasks,
+      tasksCreated: savedTasks.length,
+      tasksExtracted: extractedTasks.length,
       timestamp: new Date().toISOString()
     };
     
