@@ -6,9 +6,10 @@ export const dynamic = 'force-dynamic';
 // PUT /api/tasks/[id] - Update a task
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const params = await context.params;
     const body = await request.json();
     const task = await taskOperations.updateTask(params.id, body);
     return NextResponse.json(task);
@@ -24,9 +25,10 @@ export async function PUT(
 // DELETE /api/tasks/[id] - Delete a task
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const params = await context.params;
     await taskOperations.deleteTask(params.id);
     return NextResponse.json({ success: true });
   } catch (error) {
