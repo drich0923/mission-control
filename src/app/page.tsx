@@ -341,8 +341,15 @@ function TasksTab() {
   const loadTasks = async () => {
     setIsLoading(true);
     try {
-      // TODO: Replace with real API call
-      // For now, use demo data but structure it as if from API
+      // Load tasks from localStorage first
+      const savedTasks = localStorage.getItem('missionControlTasks');
+      if (savedTasks) {
+        setTasks(JSON.parse(savedTasks));
+        setIsLoading(false);
+        return;
+      }
+      
+      // Fallback to demo data if no saved tasks
       const mockTasks = {
         "from-calls": [
           { 
@@ -467,6 +474,9 @@ function TasksTab() {
       };
 
       setTasks(mockTasks);
+      
+      // Save demo tasks to localStorage for future use
+      localStorage.setItem('missionControlTasks', JSON.stringify(mockTasks));
     } catch (error) {
       console.error("Failed to load tasks:", error);
     } finally {
@@ -474,10 +484,71 @@ function TasksTab() {
     }
   };
 
+  // Save tasks to localStorage whenever tasks change
+  const saveTasks = (newTasks: any) => {
+    setTasks(newTasks);
+    localStorage.setItem('missionControlTasks', JSON.stringify(newTasks));
+  };
+
+  // Add new tasks from webhook
+  const addTasksFromWebhook = (newTasks: any[]) => {
+    setTasks((prev: any) => {
+      const updated = { ...prev };
+      
+      newTasks.forEach(task => {
+        // Add to "from-calls" column
+        if (!updated['from-calls']) updated['from-calls'] = [];
+        updated['from-calls'].push(task);
+      });
+      
+      // Save to localStorage
+      localStorage.setItem('missionControlTasks', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
   const handleSyncFathom = async () => {
-    // TODO: Implement real Fathom sync
-    console.log("Syncing with Fathom API...");
-    alert("Fathom sync would extract new tasks from recent call transcripts");
+    const action = confirm(
+      "Choose sync option:\n\n" +
+      "OK = Test with sample call data\n" +
+      "Cancel = Show webhook setup info"
+    );
+    
+    if (action) {
+      // Test with sample data
+      try {
+        const response = await fetch('/api/webhook/test', {
+          method: 'POST'
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok && result.webhookResponse?.tasks) {
+          // Add the extracted tasks to the kanban
+          addTasksFromWebhook(result.webhookResponse.tasks);
+          
+          alert(
+            `✅ Sample call processed successfully!\n\n` +
+            `Call: ${result.mockData.title}\n` +
+            `Tasks extracted: ${result.webhookResponse.tasksCreated}\n\n` +
+            `Check the "From Calls" column for new tasks.`
+          );
+        } else {
+          throw new Error(result.message || 'Test failed');
+        }
+      } catch (error) {
+        console.error("Test webhook error:", error);
+        alert("Failed to test webhook. Check console for details.");
+      }
+    } else {
+      // Show webhook setup info
+      alert(
+        `🔗 Fathom Webhook Setup\n\n` +
+        `Webhook URL:\n${window.location.origin}/api/webhook/fathom\n\n` +
+        `Configure this URL in your Zapier "Webhooks by Zapier" POST action.\n\n` +
+        `The webhook will automatically extract tasks from call transcripts and add them to the "From Calls" column.`
+      );
+    }
   };
 
   const columns = [
@@ -505,26 +576,24 @@ function TasksTab() {
 
     if (currentColumn === targetColumn) return;
 
-    setTasks((prev: any) => {
-      const newTasks = { ...prev } as any;
-      const taskIndex = newTasks[currentColumn].findIndex((task: any) => task.id === taskId);
+    const updatedTasks = { ...tasks } as any;
+    const taskIndex = updatedTasks[currentColumn].findIndex((task: any) => task.id === taskId);
+    
+    if (taskIndex >= 0) {
+      const task = { ...updatedTasks[currentColumn][taskIndex] };
+      task.status = targetColumn;
+      task.updatedAt = new Date().toISOString();
       
-      if (taskIndex >= 0) {
-        const task = { ...newTasks[currentColumn][taskIndex] };
-        task.status = targetColumn;
-        task.updatedAt = new Date().toISOString();
-        
-        // Auto-assign based on column
-        if (targetColumn === "charlie-queue") task.assignee = "charlie";
-        else if (targetColumn === "dylan-queue") task.assignee = "dylan";
-        else if (targetColumn === "completed") task.completedAt = new Date().toISOString();
-        
-        newTasks[currentColumn].splice(taskIndex, 1);
-        newTasks[targetColumn].push(task);
-      }
+      // Auto-assign based on column
+      if (targetColumn === "charlie-queue") task.assignee = "charlie";
+      else if (targetColumn === "dylan-queue") task.assignee = "dylan";
+      else if (targetColumn === "completed") task.completedAt = new Date().toISOString();
       
-      return newTasks;
-    });
+      updatedTasks[currentColumn].splice(taskIndex, 1);
+      updatedTasks[targetColumn].push(task);
+      
+      saveTasks(updatedTasks);
+    }
 
     // TODO: Sync change to backend
     console.log(`Moved task ${taskId} from ${currentColumn} to ${targetColumn}`);
@@ -647,16 +716,14 @@ function TasksTab() {
           task={selectedTask} 
           onClose={() => setSelectedTask(null)}
           onUpdate={(updatedTask: any) => {
-            // Update task in state
-            setTasks((prev: any) => {
-              const newTasks = { ...prev };
-              const column = updatedTask.status;
-              const taskIndex = newTasks[column].findIndex((t: any) => t.id === updatedTask.id);
-              if (taskIndex >= 0) {
-                newTasks[column][taskIndex] = updatedTask;
-              }
-              return newTasks;
-            });
+            // Update task in state and localStorage
+            const newTasks = { ...tasks };
+            const column = updatedTask.status;
+            const taskIndex = newTasks[column].findIndex((t: any) => t.id === updatedTask.id);
+            if (taskIndex >= 0) {
+              newTasks[column][taskIndex] = updatedTask;
+              saveTasks(newTasks);
+            }
             setSelectedTask(null);
           }}
         />
