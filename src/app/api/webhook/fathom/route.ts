@@ -120,6 +120,29 @@ export async function POST(request: NextRequest) {
     
     // Save tasks to database
     const savedTasks = [];
+    const errors = [];
+    
+    // Check environment variables
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    
+    if (!supabaseUrl || !supabaseKey) {
+      console.error('Supabase environment variables missing:', {
+        hasUrl: !!supabaseUrl,
+        hasKey: !!supabaseKey,
+        url: supabaseUrl?.substring(0, 20) + '...',
+        key: supabaseKey?.substring(0, 20) + '...'
+      });
+      return NextResponse.json({
+        success: false,
+        error: 'Database configuration missing',
+        debug: {
+          hasUrl: !!supabaseUrl,
+          hasKey: !!supabaseKey
+        }
+      }, { status: 500 });
+    }
+    
     for (const task of extractedTasks) {
       try {
         const savedTask = await taskOperations.createTask({
@@ -141,12 +164,15 @@ export async function POST(request: NextRequest) {
         savedTasks.push(savedTask);
       } catch (error) {
         console.error('Error saving task:', error);
-        // Continue with other tasks even if one fails
+        errors.push({
+          taskTitle: task.title,
+          error: error instanceof Error ? error.message : String(error)
+        });
       }
     }
     
     const response = {
-      success: true,
+      success: savedTasks.length > 0 || extractedTasks.length === 0,
       message: `Processed call: ${finalCallTitle}`,
       call: {
         title: finalCallTitle,
@@ -159,6 +185,11 @@ export async function POST(request: NextRequest) {
       tasks: savedTasks,
       tasksCreated: savedTasks.length,
       tasksExtracted: extractedTasks.length,
+      errors: errors,
+      debug: {
+        hasSupabaseUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
+        hasSupabaseKey: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+      },
       timestamp: new Date().toISOString()
     };
     
