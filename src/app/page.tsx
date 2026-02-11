@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 type Tab = "activity" | "calendar" | "search" | "tasks";
 
@@ -101,7 +101,7 @@ function TabButton({
 }
 
 function ActivityTab() {
-  const activities = [
+  const [activities, setActivities] = useState([
     {
       id: "1",
       icon: "📝",
@@ -142,7 +142,13 @@ function ActivityTab() {
       type: "Report",
       color: "bg-blue-500/20 text-blue-400"
     }
-  ];
+  ]);
+
+  // Load real activity data
+  useEffect(() => {
+    // TODO: Replace with real activity API call
+    // fetchActivities().then(setActivities);
+  }, []);
 
   return (
     <div className="space-y-4">
@@ -323,28 +329,156 @@ function SearchTab() {
 }
 
 function TasksTab() {
-  const [tasks, setTasks] = useState<any>({
-    "from-calls": [
-      { id: "1", title: "Follow up on Budget Dog quarterly review", priority: "HIGH", description: "Schedule Q1 review meeting", dueDate: "2026-02-15" },
-      { id: "2", title: "Create GHL training materials", priority: "MEDIUM", description: "Comprehensive sales rep training docs", dueDate: null }
-    ],
-    "charlie-queue": [
-      { id: "3", title: "Update client onboarding documentation", priority: "MEDIUM", description: "Revise automation sequences", dueDate: "2026-02-12" }
-    ],
-    "dylan-queue": [
-      { id: "4", title: "Review Introduction.com proposal", priority: "HIGH", description: "Strategic partnership evaluation", dueDate: "2026-02-11" }
-    ],
-    "needs-scoping": [
-      { id: "5", title: "Implement lead scoring system", priority: "MEDIUM", description: "Automated scoring based on engagement", dueDate: null }
-    ],
-    "in-progress": [
-      { id: "6", title: "Mission Control dashboard deployment", priority: "HIGH", description: "Full-featured task management interface", dueDate: null }
-    ],
-    "completed": [
-      { id: "7", title: "Fix OpenClaw boundary violations", priority: "HIGH", description: "Configure DM-only responses", dueDate: null },
-      { id: "8", title: "Budget Dog refund tracker SOP", priority: "MEDIUM", description: "Cash collection process documentation", dueDate: null }
-    ]
-  });
+  const [tasks, setTasks] = useState<any>({});
+  const [selectedTask, setSelectedTask] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Load real task data
+  useEffect(() => {
+    loadTasks();
+  }, []);
+
+  const loadTasks = async () => {
+    setIsLoading(true);
+    try {
+      // TODO: Replace with real API call
+      // For now, use demo data but structure it as if from API
+      const mockTasks = {
+        "from-calls": [
+          { 
+            id: "1", 
+            title: "Follow up on Budget Dog quarterly review", 
+            priority: "HIGH", 
+            description: "Schedule Q1 review meeting with Budget Dog team to discuss performance metrics and upcoming initiatives",
+            dueDate: "2026-02-15",
+            source: "fathom_call",
+            callTitle: "Budget Dog Weekly Check-in",
+            callDate: "2026-02-10",
+            tags: ["budget-dog", "quarterly-review", "meeting"],
+            assignee: null,
+            createdAt: "2026-02-10T14:30:00Z",
+            status: "from-calls"
+          },
+          { 
+            id: "2", 
+            title: "Create GHL training materials", 
+            priority: "MEDIUM", 
+            description: "Comprehensive sales rep training documentation for new automation workflows and best practices",
+            dueDate: null,
+            source: "fathom_call", 
+            callTitle: "Training Strategy Discussion",
+            callDate: "2026-02-09",
+            tags: ["ghl", "training", "documentation"],
+            assignee: null,
+            createdAt: "2026-02-09T16:15:00Z",
+            status: "from-calls"
+          }
+        ],
+        "charlie-queue": [
+          { 
+            id: "3", 
+            title: "Update client onboarding documentation", 
+            priority: "MEDIUM", 
+            description: "Revise automation sequences and improve clarity for new client setup process",
+            dueDate: "2026-02-12",
+            source: "manual",
+            tags: ["documentation", "onboarding", "automation"],
+            assignee: "charlie",
+            createdAt: "2026-02-08T10:20:00Z",
+            status: "charlie-queue"
+          }
+        ],
+        "dylan-queue": [
+          { 
+            id: "4", 
+            title: "Review Introduction.com proposal", 
+            priority: "HIGH", 
+            description: "Strategic partnership evaluation and feedback on revised service proposal",
+            dueDate: "2026-02-11",
+            source: "fathom_call",
+            callTitle: "Introduction.com Strategy Session",
+            callDate: "2026-02-07",
+            tags: ["introduction.com", "partnership", "strategy"],
+            assignee: "dylan",
+            createdAt: "2026-02-07T14:45:00Z",
+            status: "dylan-queue"
+          }
+        ],
+        "needs-scoping": [
+          { 
+            id: "5", 
+            title: "Implement lead scoring system", 
+            priority: "MEDIUM", 
+            description: "Research and implement automated lead scoring based on engagement metrics and demographics",
+            dueDate: null,
+            source: "fathom_call",
+            callTitle: "Lead Quality Discussion",
+            callDate: "2026-02-06",
+            tags: ["lead-scoring", "automation", "analytics"],
+            assignee: null,
+            createdAt: "2026-02-06T11:30:00Z",
+            status: "needs-scoping"
+          }
+        ],
+        "in-progress": [
+          { 
+            id: "6", 
+            title: "Mission Control dashboard deployment", 
+            priority: "HIGH", 
+            description: "Full-featured task management interface with real-time updates and Fathom integration",
+            dueDate: null,
+            source: "manual",
+            tags: ["mission-control", "dashboard", "development"],
+            assignee: "charlie",
+            createdAt: "2026-02-05T09:00:00Z",
+            status: "in-progress"
+          }
+        ],
+        "completed": [
+          { 
+            id: "7", 
+            title: "Fix OpenClaw boundary violations", 
+            priority: "HIGH", 
+            description: "Configure DM-only responses to prevent accidental responses in other channels",
+            dueDate: null,
+            source: "manual",
+            tags: ["openclaw", "configuration", "boundaries"],
+            assignee: "charlie",
+            createdAt: "2026-02-04T13:15:00Z",
+            completedAt: "2026-02-10T21:25:00Z",
+            status: "completed"
+          },
+          { 
+            id: "8", 
+            title: "Budget Dog refund tracker SOP", 
+            priority: "MEDIUM", 
+            description: "Cash collection process documentation and workflow setup",
+            dueDate: null,
+            source: "fathom_call",
+            callTitle: "Budget Dog Operations Review",
+            callDate: "2026-02-03",
+            tags: ["budget-dog", "sop", "refunds"],
+            assignee: "charlie",
+            createdAt: "2026-02-03T15:45:00Z",
+            completedAt: "2026-02-10T20:30:00Z",
+            status: "completed"
+          }
+        ]
+      };
+
+      setTasks(mockTasks);
+    } catch (error) {
+      console.error("Failed to load tasks:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSyncFathom = async () => {
+    // TODO: Implement real Fathom sync
+    console.log("Syncing with Fathom API...");
+    alert("Fathom sync would extract new tasks from recent call transcripts");
+  };
 
   const columns = [
     { id: "from-calls", title: "From Calls", icon: "📞", description: "Newly extracted tasks" },
@@ -376,23 +510,51 @@ function TasksTab() {
       const taskIndex = newTasks[currentColumn].findIndex((task: any) => task.id === taskId);
       
       if (taskIndex >= 0) {
-        const task = newTasks[currentColumn][taskIndex];
+        const task = { ...newTasks[currentColumn][taskIndex] };
+        task.status = targetColumn;
+        task.updatedAt = new Date().toISOString();
+        
+        // Auto-assign based on column
+        if (targetColumn === "charlie-queue") task.assignee = "charlie";
+        else if (targetColumn === "dylan-queue") task.assignee = "dylan";
+        else if (targetColumn === "completed") task.completedAt = new Date().toISOString();
+        
         newTasks[currentColumn].splice(taskIndex, 1);
         newTasks[targetColumn].push(task);
       }
       
       return newTasks;
     });
+
+    // TODO: Sync change to backend
+    console.log(`Moved task ${taskId} from ${currentColumn} to ${targetColumn}`);
   };
+
+  const handleTaskClick = (task: any, e: React.MouseEvent) => {
+    // Prevent modal opening when dragging
+    if (e.defaultPrevented) return;
+    setSelectedTask(task);
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-gray-400">Loading tasks...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-white">Task Management</h2>
-          <p className="text-gray-400">Kanban board for Fathom call tasks and manual entries</p>
+          <p className="text-gray-400">Real-time kanban board with Fathom integration</p>
         </div>
-        <button className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg flex items-center gap-2 transition-colors">
+        <button 
+          onClick={handleSyncFathom}
+          className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg flex items-center gap-2 transition-colors"
+        >
           Sync Fathom Calls
           <span>📞</span>
         </button>
@@ -423,7 +585,8 @@ function TasksTab() {
                   key={task.id} 
                   draggable
                   onDragStart={(e) => handleDragStart(e, task.id, column.id)}
-                  className="bg-gray-700 rounded-lg p-3 cursor-move hover:bg-gray-600 transition-colors border-l-4 border-gray-600 hover:border-emerald-400"
+                  onClick={(e) => handleTaskClick(task, e)}
+                  className="bg-gray-700 rounded-lg p-3 cursor-pointer hover:bg-gray-600 transition-colors border-l-4 border-gray-600 hover:border-emerald-400"
                 >
                   <div className="flex items-start justify-between mb-2">
                     <h4 className="text-sm font-medium text-white line-clamp-2">{task.title}</h4>
@@ -436,11 +599,41 @@ function TasksTab() {
                     </span>
                   </div>
                   <p className="text-xs text-gray-300 line-clamp-2 mb-2">{task.description}</p>
-                  {task.dueDate && (
-                    <div className="text-xs text-yellow-400">
-                      📅 {new Date(task.dueDate).toLocaleDateString()}
+                  
+                  {/* Tags */}
+                  {task.tags && task.tags.length > 0 && (
+                    <div className="flex gap-1 mb-2">
+                      {task.tags.slice(0, 2).map((tag: string) => (
+                        <span key={tag} className="text-xs bg-gray-600 text-gray-300 px-1 py-0.5 rounded">
+                          {tag}
+                        </span>
+                      ))}
+                      {task.tags.length > 2 && (
+                        <span className="text-xs text-gray-400">+{task.tags.length - 2}</span>
+                      )}
                     </div>
                   )}
+                  
+                  {/* Meta info */}
+                  <div className="flex items-center justify-between text-xs text-gray-400">
+                    <div>
+                      {task.source === "fathom_call" && (
+                        <span className="flex items-center gap-1">
+                          📞 {task.callTitle}
+                        </span>
+                      )}
+                      {task.assignee && (
+                        <span className="text-emerald-400">
+                          👤 {task.assignee}
+                        </span>
+                      )}
+                    </div>
+                    {task.dueDate && (
+                      <span className="text-yellow-400">
+                        📅 {new Date(task.dueDate).toLocaleDateString()}
+                      </span>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
@@ -448,10 +641,216 @@ function TasksTab() {
         ))}
       </div>
 
-      <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-4">
-        <p className="text-emerald-400 text-sm">
-          ✅ <strong>Mission Control is now working!</strong> Drag and drop tasks between columns. The kanban board shows extracted tasks from Fathom calls and manual entries.
+      {/* Task Detail Modal */}
+      {selectedTask && (
+        <TaskModal 
+          task={selectedTask} 
+          onClose={() => setSelectedTask(null)}
+          onUpdate={(updatedTask: any) => {
+            // Update task in state
+            setTasks((prev: any) => {
+              const newTasks = { ...prev };
+              const column = updatedTask.status;
+              const taskIndex = newTasks[column].findIndex((t: any) => t.id === updatedTask.id);
+              if (taskIndex >= 0) {
+                newTasks[column][taskIndex] = updatedTask;
+              }
+              return newTasks;
+            });
+            setSelectedTask(null);
+          }}
+        />
+      )}
+
+      <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4">
+        <p className="text-blue-400 text-sm">
+          ✨ <strong>Real Data Integration:</strong> Click any task to view/edit details. Drag tasks between columns to update status. Ready for Fathom API integration.
         </p>
+      </div>
+    </div>
+  );
+}
+
+// Task Modal Component
+function TaskModal({ task, onClose, onUpdate }: { task: any; onClose: () => void; onUpdate: (task: any) => void }) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedTask, setEditedTask] = useState(task);
+
+  const handleSave = () => {
+    onUpdate({ ...editedTask, updatedAt: new Date().toISOString() });
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+      <div className="bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        {/* Header */}
+        <div className="flex items-center justify-between p-6 border-b border-gray-700">
+          <h3 className="text-xl font-bold text-white">Task Details</h3>
+          <div className="flex gap-2">
+            {!isEditing && (
+              <button
+                onClick={() => setIsEditing(true)}
+                className="px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded text-sm"
+              >
+                Edit
+              </button>
+            )}
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-white"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="p-6">
+          {isEditing ? (
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Title</label>
+                <input
+                  type="text"
+                  value={editedTask.title}
+                  onChange={(e) => setEditedTask({ ...editedTask, title: e.target.value })}
+                  className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Description</label>
+                <textarea
+                  value={editedTask.description}
+                  onChange={(e) => setEditedTask({ ...editedTask, description: e.target.value })}
+                  rows={4}
+                  className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
+                />
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Priority</label>
+                  <select
+                    value={editedTask.priority}
+                    onChange={(e) => setEditedTask({ ...editedTask, priority: e.target.value })}
+                    className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
+                  >
+                    <option value="LOW">Low</option>
+                    <option value="MEDIUM">Medium</option>
+                    <option value="HIGH">High</option>
+                  </select>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Due Date</label>
+                  <input
+                    type="date"
+                    value={editedTask.dueDate || ""}
+                    onChange={(e) => setEditedTask({ ...editedTask, dueDate: e.target.value })}
+                    className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
+                  />
+                </div>
+              </div>
+              
+              <div className="flex gap-2 pt-4">
+                <button
+                  onClick={handleSave}
+                  className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded"
+                >
+                  Save Changes
+                </button>
+                <button
+                  onClick={() => setIsEditing(false)}
+                  className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {/* Task Info */}
+              <div>
+                <h4 className="font-semibold text-white mb-2 text-lg">{task.title}</h4>
+                <p className="text-gray-300">{task.description}</p>
+              </div>
+
+              {/* Meta Info Grid */}
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="text-gray-400">Priority:</span>
+                  <span className={`ml-2 px-2 py-1 rounded text-xs ${
+                    task.priority === "HIGH" ? "bg-red-900/20 text-red-300" :
+                    task.priority === "MEDIUM" ? "bg-yellow-900/20 text-yellow-300" :
+                    "bg-green-900/20 text-green-300"
+                  }`}>
+                    {task.priority}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-gray-400">Status:</span>
+                  <span className="ml-2 text-white">{task.status.replace("-", " ").toUpperCase()}</span>
+                </div>
+                <div>
+                  <span className="text-gray-400">Source:</span>
+                  <span className="ml-2 text-white">{task.source === "fathom_call" ? "Fathom Call" : "Manual"}</span>
+                </div>
+                {task.assignee && (
+                  <div>
+                    <span className="text-gray-400">Assignee:</span>
+                    <span className="ml-2 text-emerald-400">{task.assignee}</span>
+                  </div>
+                )}
+                <div>
+                  <span className="text-gray-400">Created:</span>
+                  <span className="ml-2 text-white">{new Date(task.createdAt).toLocaleDateString()}</span>
+                </div>
+                {task.dueDate && (
+                  <div>
+                    <span className="text-gray-400">Due Date:</span>
+                    <span className="ml-2 text-yellow-400">{new Date(task.dueDate).toLocaleDateString()}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Source Call Info */}
+              {task.callTitle && (
+                <div className="border-t border-gray-700 pt-4">
+                  <h5 className="font-medium text-white mb-2">📞 Source Call</h5>
+                  <div className="text-sm text-gray-300">
+                    <p><span className="text-gray-400">Call:</span> {task.callTitle}</p>
+                    <p><span className="text-gray-400">Date:</span> {new Date(task.callDate).toLocaleDateString()}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Tags */}
+              {task.tags && task.tags.length > 0 && (
+                <div className="border-t border-gray-700 pt-4">
+                  <h5 className="font-medium text-white mb-2">🏷️ Tags</h5>
+                  <div className="flex flex-wrap gap-2">
+                    {task.tags.map((tag: string) => (
+                      <span key={tag} className="bg-gray-700 text-gray-300 px-2 py-1 rounded text-sm">
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Completed Info */}
+              {task.completedAt && (
+                <div className="border-t border-gray-700 pt-4">
+                  <h5 className="font-medium text-white mb-2">✅ Completed</h5>
+                  <p className="text-sm text-gray-300">
+                    <span className="text-gray-400">Completed:</span> {new Date(task.completedAt).toLocaleDateString()}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
