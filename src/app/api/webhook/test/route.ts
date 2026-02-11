@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+// Force dynamic for webhook endpoint
+export const dynamic = 'force-dynamic';
+
 // Test endpoint to simulate Zapier webhook data
 export async function POST(request: NextRequest) {
   // Mock Fathom data that Zapier would send

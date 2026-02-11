@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+// Force dynamic for webhook endpoint
+export const dynamic = 'force-dynamic';
+
 // Mock AI task extraction (replace with real AI service)
 async function extractTasksFromTranscript(transcript: string, callTitle: string, callDate: string) {
   // TODO: Replace with real AI task extraction
@@ -37,7 +40,7 @@ async function extractTasksFromTranscript(transcript: string, callTitle: string,
       }
       
       // Extract tags from call title and content
-      const tags = [];
+      const tags: string[] = [];
       const callWords = callTitle.toLowerCase().split(' ');
       ['budget', 'dog', 'ghl', 'training', 'review', 'onboarding', 'sales'].forEach(tag => {
         if (callWords.some(word => word.includes(tag)) || lowerSentence.includes(tag)) {
