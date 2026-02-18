@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { taskOperations } from '../../../../../lib/supabase';
+import { taskOperations } from '../../../../../lib/supabase-server';
 
 export const dynamic = 'force-dynamic';
 
