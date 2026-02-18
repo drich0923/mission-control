@@ -338,156 +338,56 @@ function TasksTab() {
     loadTasks();
   }, []);
 
+  const normalizeTask = (task: any) => ({
+    id: task.id,
+    title: task.title,
+    description: task.description,
+    priority: task.priority,
+    status: task.status,
+    dueDate: task.due_date ?? task.dueDate ?? null,
+    source: task.source,
+    tags: task.tags || [],
+    assignee: task.assignee,
+    createdAt: task.created_at ?? task.createdAt,
+    completedAt: task.completed_at ?? task.completedAt ?? null,
+    updatedAt: task.updated_at ?? task.updatedAt ?? null,
+  });
+
+  const groupTasksByStatus = (flatTasks: any[]) => {
+    const grouped: any = {
+      "from-calls": [],
+      "charlie-queue": [],
+      "dylan-queue": [],
+      "needs-scoping": [],
+      "in-progress": [],
+      "completed": [],
+    };
+    flatTasks.forEach((task) => {
+      const normalized = normalizeTask(task);
+      const bucket = normalized.status in grouped ? normalized.status : "from-calls";
+      grouped[bucket].push(normalized);
+    });
+    return grouped;
+  };
+
   const loadTasks = async () => {
     setIsLoading(true);
     try {
-      // Load tasks from localStorage first
-      const savedTasks = localStorage.getItem('missionControlTasks');
-      if (savedTasks) {
-        setTasks(JSON.parse(savedTasks));
-        setIsLoading(false);
-        return;
-      }
-      
-      // Fallback to demo data if no saved tasks
-      const mockTasks = {
-        "from-calls": [
-          { 
-            id: "1", 
-            title: "Follow up on Budget Dog quarterly review", 
-            priority: "HIGH", 
-            description: "Schedule Q1 review meeting with Budget Dog team to discuss performance metrics and upcoming initiatives",
-            dueDate: "2026-02-15",
-            source: "fathom_call",
-            callTitle: "Budget Dog Weekly Check-in",
-            callDate: "2026-02-10",
-            tags: ["budget-dog", "quarterly-review", "meeting"],
-            assignee: null,
-            createdAt: "2026-02-10T14:30:00Z",
-            status: "from-calls"
-          },
-          { 
-            id: "2", 
-            title: "Create GHL training materials", 
-            priority: "MEDIUM", 
-            description: "Comprehensive sales rep training documentation for new automation workflows and best practices",
-            dueDate: null,
-            source: "fathom_call", 
-            callTitle: "Training Strategy Discussion",
-            callDate: "2026-02-09",
-            tags: ["ghl", "training", "documentation"],
-            assignee: null,
-            createdAt: "2026-02-09T16:15:00Z",
-            status: "from-calls"
-          }
-        ],
-        "charlie-queue": [
-          { 
-            id: "3", 
-            title: "Update client onboarding documentation", 
-            priority: "MEDIUM", 
-            description: "Revise automation sequences and improve clarity for new client setup process",
-            dueDate: "2026-02-12",
-            source: "manual",
-            tags: ["documentation", "onboarding", "automation"],
-            assignee: "charlie",
-            createdAt: "2026-02-08T10:20:00Z",
-            status: "charlie-queue"
-          }
-        ],
-        "dylan-queue": [
-          { 
-            id: "4", 
-            title: "Review Introduction.com proposal", 
-            priority: "HIGH", 
-            description: "Strategic partnership evaluation and feedback on revised service proposal",
-            dueDate: "2026-02-11",
-            source: "fathom_call",
-            callTitle: "Introduction.com Strategy Session",
-            callDate: "2026-02-07",
-            tags: ["introduction.com", "partnership", "strategy"],
-            assignee: "dylan",
-            createdAt: "2026-02-07T14:45:00Z",
-            status: "dylan-queue"
-          }
-        ],
-        "needs-scoping": [
-          { 
-            id: "5", 
-            title: "Implement lead scoring system", 
-            priority: "MEDIUM", 
-            description: "Research and implement automated lead scoring based on engagement metrics and demographics",
-            dueDate: null,
-            source: "fathom_call",
-            callTitle: "Lead Quality Discussion",
-            callDate: "2026-02-06",
-            tags: ["lead-scoring", "automation", "analytics"],
-            assignee: null,
-            createdAt: "2026-02-06T11:30:00Z",
-            status: "needs-scoping"
-          }
-        ],
-        "in-progress": [
-          { 
-            id: "6", 
-            title: "Mission Control dashboard deployment", 
-            priority: "HIGH", 
-            description: "Full-featured task management interface with real-time updates and Fathom integration",
-            dueDate: null,
-            source: "manual",
-            tags: ["mission-control", "dashboard", "development"],
-            assignee: "charlie",
-            createdAt: "2026-02-05T09:00:00Z",
-            status: "in-progress"
-          }
-        ],
-        "completed": [
-          { 
-            id: "7", 
-            title: "Fix OpenClaw boundary violations", 
-            priority: "HIGH", 
-            description: "Configure DM-only responses to prevent accidental responses in other channels",
-            dueDate: null,
-            source: "manual",
-            tags: ["openclaw", "configuration", "boundaries"],
-            assignee: "charlie",
-            createdAt: "2026-02-04T13:15:00Z",
-            completedAt: "2026-02-10T21:25:00Z",
-            status: "completed"
-          },
-          { 
-            id: "8", 
-            title: "Budget Dog refund tracker SOP", 
-            priority: "MEDIUM", 
-            description: "Cash collection process documentation and workflow setup",
-            dueDate: null,
-            source: "fathom_call",
-            callTitle: "Budget Dog Operations Review",
-            callDate: "2026-02-03",
-            tags: ["budget-dog", "sop", "refunds"],
-            assignee: "charlie",
-            createdAt: "2026-02-03T15:45:00Z",
-            completedAt: "2026-02-10T20:30:00Z",
-            status: "completed"
-          }
-        ]
-      };
-
-      setTasks(mockTasks);
-      
-      // Save demo tasks to localStorage for future use
-      localStorage.setItem('missionControlTasks', JSON.stringify(mockTasks));
+      const response = await fetch('/api/tasks');
+      if (!response.ok) throw new Error('Failed to fetch tasks');
+      const apiTasks = await response.json();
+      setTasks(groupTasksByStatus(apiTasks));
     } catch (error) {
       console.error("Failed to load tasks:", error);
+      setTasks({ "from-calls": [], "charlie-queue": [], "dylan-queue": [], "needs-scoping": [], "in-progress": [], "completed": [] });
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Save tasks to localStorage whenever tasks change
+  // Update local state only (no localStorage)
   const saveTasks = (newTasks: any) => {
     setTasks(newTasks);
-    localStorage.setItem('missionControlTasks', JSON.stringify(newTasks));
   };
 
   // Add new tasks from webhook
@@ -501,8 +401,6 @@ function TasksTab() {
         updated['from-calls'].push(task);
       });
       
-      // Save to localStorage
-      localStorage.setItem('missionControlTasks', JSON.stringify(updated));
       return updated;
     });
   };
@@ -593,10 +491,18 @@ function TasksTab() {
       updatedTasks[targetColumn].push(task);
       
       saveTasks(updatedTasks);
-    }
 
-    // TODO: Sync change to backend
-    console.log(`Moved task ${taskId} from ${currentColumn} to ${targetColumn}`);
+      // Sync status change to backend
+      fetch(`/api/tasks/${taskId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          status: targetColumn,
+          assignee: task.assignee,
+          completed_at: task.completedAt || null,
+        }),
+      }).catch((err) => console.error('Failed to sync task status:', err));
+    }
   };
 
   const handleTaskClick = (task: any, e: React.MouseEvent) => {
@@ -716,13 +622,31 @@ function TasksTab() {
           task={selectedTask} 
           onClose={() => setSelectedTask(null)}
           onUpdate={(updatedTask: any) => {
-            // Update task in state and localStorage
+            // Sync to backend
+            fetch(`/api/tasks/${updatedTask.id}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                title: updatedTask.title,
+                description: updatedTask.description,
+                priority: updatedTask.priority,
+                status: updatedTask.status,
+                assignee: updatedTask.assignee,
+                due_date: updatedTask.dueDate || null,
+                tags: updatedTask.tags || [],
+                completed_at: updatedTask.completedAt || null,
+              }),
+            }).catch((err) => console.error('Failed to sync task update:', err));
+
+            // Update local state
             const newTasks = { ...tasks };
             const column = updatedTask.status;
-            const taskIndex = newTasks[column].findIndex((t: any) => t.id === updatedTask.id);
-            if (taskIndex >= 0) {
-              newTasks[column][taskIndex] = updatedTask;
-              saveTasks(newTasks);
+            if (newTasks[column]) {
+              const taskIndex = newTasks[column].findIndex((t: any) => t.id === updatedTask.id);
+              if (taskIndex >= 0) {
+                newTasks[column][taskIndex] = updatedTask;
+                saveTasks(newTasks);
+              }
             }
             setSelectedTask(null);
           }}
