@@ -108,61 +108,47 @@ function TabButton({
 }
 
 function ActivityTab() {
-  const [activities, setActivities] = useState([
-    {
-      id: "1",
-      icon: "📝",
-      description: "Created Budget Dog Cash Collected Refund Tracker SOP",
-      time: "15m ago",
-      type: "File Write",
-      color: "bg-green-500/20 text-green-400"
-    },
-    {
-      id: "2", 
-      icon: "🔧",
-      description: "Fixed Mission Control deployment issues - all tabs now working",
-      time: "45m ago",
-      type: "Deploy",
-      color: "bg-emerald-500/20 text-emerald-400"
-    },
-    {
-      id: "3",
-      icon: "⚙️",
-      description: "Updated OpenClaw config to enforce DM-only boundaries", 
-      time: "1h ago",
-      type: "Config",
-      color: "bg-purple-500/20 text-purple-400"
-    },
-    {
-      id: "4",
-      icon: "📞",
-      description: "Processed Fathom call transcripts for task extraction",
-      time: "2h ago", 
-      type: "API Call",
-      color: "bg-cyan-500/20 text-cyan-400"
-    },
-    {
-      id: "5",
-      icon: "📊",
-      description: "Generated weekly Budget Dog performance report",
-      time: "3h ago",
-      type: "Report",
-      color: "bg-blue-500/20 text-blue-400"
-    }
-  ]);
+  const [activities, setActivities] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Load real activity data
   useEffect(() => {
-    // TODO: Replace with real activity API call
-    // fetchActivities().then(setActivities);
+    loadActivity();
+    const interval = setInterval(loadActivity, 60000);
+    return () => clearInterval(interval);
   }, []);
+
+  const loadActivity = async () => {
+    try {
+      const res = await fetch('/api/activity');
+      if (res.ok) setActivities(await res.json());
+    } catch (e) {
+      console.error('Failed to load activity:', e);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold text-white">Recent Activity</h2>
-        <span className="text-sm text-gray-400">{activities.length} activities</span>
+        <div className="flex items-center gap-3">
+          <span className="text-sm text-gray-400">{activities.length} events</span>
+          <button onClick={loadActivity} className="text-xs text-gray-400 hover:text-white px-2 py-1 bg-gray-700 rounded">
+            ↻ Refresh
+          </button>
+        </div>
       </div>
+
+      {isLoading && (
+        <div className="animate-pulse text-gray-500 text-sm py-6 text-center">Loading activity...</div>
+      )}
+
+      {!isLoading && activities.length === 0 && (
+        <div className="text-center py-12 text-gray-500">
+          <p>No activity yet — tasks will appear here as they're created and completed.</p>
+        </div>
+      )}
       
       <div className="space-y-3">
         {activities.map((activity) => (
@@ -175,8 +161,9 @@ function ActivityTab() {
                 <p className="text-white font-medium">{activity.description}</p>
                 <div className="flex gap-2 text-sm text-gray-400 mt-1">
                   <span>{activity.type}</span>
+                  {activity.assignee && <><span>•</span><span className="text-emerald-400">{activity.assignee}</span></>}
                   <span>•</span>
-                  <span>{activity.time}</span>
+                  <span>{activity.timeRel}</span>
                 </div>
               </div>
             </div>
@@ -189,11 +176,15 @@ function ActivityTab() {
 
 function CalendarTab() {
   const tasks = [
-    { id: "1", name: "Nightly Maintenance", time: "Daily 3:00 AM ET", type: "cron", status: "active" },
-    { id: "2", name: "KLOW Peptide Reminder", time: "M-F 8:00 AM ET", type: "reminder", status: "active" },
-    { id: "3", name: "Ipa/Tesa Peptide Reminder", time: "Daily 10:00 PM ET", type: "reminder", status: "active" },
-    { id: "4", name: "Friday Manager Check-In", time: "Fridays 9:00 AM ET", type: "cron", status: "active" },
-    { id: "5", name: "Budget Dog Weekly Report", time: "Mondays 8:00 AM ET", type: "report", status: "active" },
+    { id: "1",  name: "Nightly Maintenance",        time: "Daily 3:00 AM ET",     type: "cron",     status: "active",   desc: "Commit workspace, organize memory, cleanup temp files" },
+    { id: "2",  name: "KLOW Peptide Reminder",       time: "M-F 8:00 AM ET",      type: "reminder", status: "active",   desc: "80mg KLOW — 10 units AM" },
+    { id: "3",  name: "Ipa/Tesa Peptide Reminder",   time: "Daily 10:00 PM ET",   type: "reminder", status: "active",   desc: "10mg Ipa/Tesa — 10 units PM, no food 1hr after" },
+    { id: "4",  name: "Friday Manager Check-In",     time: "Fridays 9:00 AM ET",  type: "cron",     status: "active",   desc: "Post weekly check-in to #avengers-managers" },
+    { id: "5",  name: "Budget Dog Weekly Report",    time: "Mondays 8:00 AM ET",  type: "report",   status: "active",   desc: "Pull tracker sheet, send summary to Dylan" },
+    { id: "6",  name: "Weekly Usage Report",         time: "Mondays 9:00 AM ET",  type: "report",   status: "active",   desc: "Agent token usage + cost summary" },
+    { id: "7",  name: "Content Pipeline",            time: "Fridays 2:00 PM ET",  type: "cron",     status: "active",   desc: "Review #avengers-managers, post 2-3 briefs to Kyam in #ghostwriter" },
+    { id: "8",  name: "Client Brain Sync",           time: "Sundays 8:00 PM ET",  type: "cron",     status: "active",   desc: "Sync client sub-agent activity to Google Drive" },
+    { id: "9",  name: "Monitoring Session Reset",    time: "Every 3 days 2:00 AM", type: "cron",    status: "active",   desc: "Clear monitoring session to prevent token overflow" },
   ];
 
   return (
@@ -214,12 +205,9 @@ function CalendarTab() {
           </h3>
           <div className="space-y-3">
             {tasks.map((task) => (
-              <div key={task.id} className="flex items-center justify-between p-3 bg-gray-700 rounded-lg">
-                <div className="flex-1">
+              <div key={task.id} className="p-3 bg-gray-700 rounded-lg">
+                <div className="flex items-center justify-between mb-1">
                   <h4 className="font-medium text-white">{task.name}</h4>
-                  <p className="text-sm text-gray-400">{task.time}</p>
-                </div>
-                <div className="text-right">
                   <span className={`px-2 py-1 rounded text-xs ${
                     task.type === "cron" ? "bg-emerald-500/20 text-emerald-400" :
                     task.type === "reminder" ? "bg-blue-500/20 text-blue-400" :
@@ -228,6 +216,8 @@ function CalendarTab() {
                     {task.type}
                   </span>
                 </div>
+                <p className="text-xs text-emerald-400 mb-1">{task.time}</p>
+                {(task as any).desc && <p className="text-xs text-gray-400">{(task as any).desc}</p>}
               </div>
             ))}
           </div>
