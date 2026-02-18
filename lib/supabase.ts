@@ -10,7 +10,7 @@ export interface Task {
   id: string
   title: string
   description?: string
-  status: 'from-calls' | 'todo' | 'in-progress' | 'done'
+  status: 'from-calls' | 'charlie-queue' | 'dylan-queue' | 'needs-scoping' | 'in-progress' | 'completed' | 'done' | 'todo'
   priority: 'LOW' | 'MEDIUM' | 'HIGH'
   assignee?: 'charlie' | 'dylan' | null
   due_date?: string
