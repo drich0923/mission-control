@@ -621,6 +621,14 @@ function TasksTab() {
         <TaskModal 
           task={selectedTask} 
           onClose={() => setSelectedTask(null)}
+          onDelete={(taskId: string) => {
+            const newTasks = { ...tasks };
+            for (const col of Object.keys(newTasks)) {
+              newTasks[col] = newTasks[col].filter((t: any) => t.id !== taskId);
+            }
+            saveTasks(newTasks);
+            setSelectedTask(null);
+          }}
           onUpdate={(updatedTask: any) => {
             // Sync to backend
             fetch(`/api/tasks/${updatedTask.id}`, {
@@ -663,12 +671,28 @@ function TasksTab() {
 }
 
 // Task Modal Component
-function TaskModal({ task, onClose, onUpdate }: { task: any; onClose: () => void; onUpdate: (task: any) => void }) {
+function TaskModal({ task, onClose, onUpdate, onDelete }: { task: any; onClose: () => void; onUpdate: (task: any) => void; onDelete: (taskId: string) => void }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedTask, setEditedTask] = useState(task);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const handleSave = () => {
     onUpdate({ ...editedTask, updatedAt: new Date().toISOString() });
+  };
+
+  const handleDelete = async () => {
+    if (!confirm(`Delete "${task.title}"? This cannot be undone.`)) return;
+    setIsDeleting(true);
+    try {
+      const res = await fetch(`/api/tasks/${task.id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Delete failed');
+      onDelete(task.id);
+    } catch (err) {
+      console.error('Failed to delete task:', err);
+      alert('Failed to delete task. Please try again.');
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   return (
@@ -684,6 +708,15 @@ function TaskModal({ task, onClose, onUpdate }: { task: any; onClose: () => void
                 className="px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded text-sm"
               >
                 Edit
+              </button>
+            )}
+            {!isEditing && (
+              <button
+                onClick={handleDelete}
+                disabled={isDeleting}
+                className="px-3 py-1 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white rounded text-sm"
+              >
+                {isDeleting ? "Deleting…" : "Delete"}
               </button>
             )}
             <button
