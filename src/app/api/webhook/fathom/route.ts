@@ -158,7 +158,9 @@ export async function POST(request: NextRequest) {
             call_title: finalCallTitle,
             call_date: finalCallDate,
             call_url: recordingUrl,
-            transcript_excerpt: task.description
+            transcript_excerpt: task.description,
+            participants: Array.isArray(participants) ? participants : [],
+            requested_by: determineRequester(Array.isArray(participants) ? participants : []),
           }
         });
         savedTasks.push(savedTask);
@@ -214,6 +216,16 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+// Determine if Dylan or team prompted a task based on participants
+function determineRequester(participants: any[]): string {
+  if (!participants || participants.length === 0) return 'Team';
+  const names = participants.map((p: any) =>
+    typeof p === 'string' ? p.toLowerCase() : (p.name || p.email || '').toLowerCase()
+  );
+  if (names.some(n => n.includes('dylan') || n.includes('rich'))) return 'Dylan';
+  return 'Team';
 }
 
 // GET endpoint for webhook verification/testing

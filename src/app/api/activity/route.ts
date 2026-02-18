@@ -3,54 +3,72 @@ import { supabase } from '../../../../lib/supabase';
 
 export const dynamic = 'force-dynamic';
 
-// GET /api/activity — derive activity feed from real task events
 export async function GET() {
   try {
     const { data: tasks, error } = await supabase
       .from('tasks')
-      .select('id, title, status, source, assignee, created_at, updated_at, completed_at')
+      .select('id, title, status, source, assignee, source_data, created_at, updated_at, completed_at')
       .order('updated_at', { ascending: false })
-      .limit(50);
+      .limit(100);
 
     if (error) throw error;
 
     const events: any[] = [];
+    const now = Date.now();
 
     for (const task of tasks || []) {
+      const sd = task.source_data || {};
+      const requestedBy = sd.requested_by || (task.assignee === 'dylan' ? 'Dylan' : null) || 'Team';
+      const callUrl = sd.call_url || null;
+      const slackUrl = sd.slack_url || null;
+      const docUrl = sd.doc_url || null;
+      const callTitle = sd.call_title || null;
+      const participants: string[] = sd.participants || [];
+
+      // Completion event (show first/higher in feed)
       if (task.completed_at) {
         events.push({
-          id: `completed-${task.id}`,
+          id: `done-${task.id}`,
+          taskId: task.id,
           icon: '✅',
-          description: `Completed: ${task.title}`,
+          title: task.title,
+          action: 'Completed',
+          requestedBy,
+          callTitle,
+          callUrl,
+          slackUrl,
+          docUrl,
+          participants,
+          status: 'completed',
           time: task.completed_at,
-          type: 'Completed',
+          timeRel: relativeTime(new Date(task.completed_at).getTime(), now),
           color: 'bg-green-500/20 text-green-400',
         });
       }
-      if (task.source === 'fathom_call') {
-        events.push({
-          id: `created-${task.id}`,
-          icon: '📞',
-          description: `Extracted from Fathom call: ${task.title}`,
-          time: task.created_at,
-          type: 'From Call',
-          color: 'bg-cyan-500/20 text-cyan-400',
-          assignee: task.assignee,
-        });
-      } else {
-        events.push({
-          id: `created-${task.id}`,
-          icon: '📝',
-          description: `Task created: ${task.title}`,
-          time: task.created_at,
-          type: 'Task',
-          color: 'bg-blue-500/20 text-blue-400',
-          assignee: task.assignee,
-        });
-      }
+
+      // Creation event
+      events.push({
+        id: `new-${task.id}`,
+        taskId: task.id,
+        icon: task.source === 'fathom_call' ? '📞' : task.source === 'manual' ? '📝' : '🔄',
+        title: task.title,
+        action: task.source === 'fathom_call' ? 'Extracted from call' : task.source === 'manual' ? 'Created' : 'Recurring task',
+        requestedBy,
+        callTitle,
+        callUrl,
+        slackUrl,
+        docUrl,
+        participants,
+        status: task.status,
+        time: task.created_at,
+        timeRel: relativeTime(new Date(task.created_at).getTime(), now),
+        color: task.source === 'fathom_call' ? 'bg-cyan-500/20 text-cyan-400' :
+               task.source === 'manual' ? 'bg-blue-500/20 text-blue-400' :
+               'bg-purple-500/20 text-purple-400',
+      });
     }
 
-    // usage_snapshots if table exists (graceful fail)
+    // usage_snapshots (graceful)
     const { data: snapshots } = await supabase
       .from('usage_snapshots')
       .select('id, summary, created_at')
@@ -60,23 +78,21 @@ export async function GET() {
     for (const snap of (snapshots || [])) {
       events.push({
         id: `usage-${snap.id}`,
+        taskId: null,
         icon: '📊',
-        description: snap.summary || 'Weekly usage report generated',
+        title: snap.summary || 'Weekly usage report',
+        action: 'Report generated',
+        requestedBy: 'Charlie',
+        callTitle: null, callUrl: null, slackUrl: null, docUrl: null, participants: [],
+        status: 'report',
         time: snap.created_at,
-        type: 'Report',
+        timeRel: relativeTime(new Date(snap.created_at).getTime(), now),
         color: 'bg-purple-500/20 text-purple-400',
       });
     }
 
     events.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
-
-    const now = Date.now();
-    const result = events.slice(0, 30).map((e) => ({
-      ...e,
-      timeRel: relativeTime(new Date(e.time).getTime(), now),
-    }));
-
-    return NextResponse.json(result);
+    return NextResponse.json(events.slice(0, 50));
   } catch (error) {
     console.error('Error fetching activity:', error);
     return NextResponse.json([]);
@@ -92,5 +108,5 @@ function relativeTime(ts: number, now: number): string {
   if (m < 60) return `${m}m ago`;
   if (h < 24) return `${h}h ago`;
   if (d < 7) return `${d}d ago`;
-  return new Date(ts).toLocaleDateString();
+  return new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }

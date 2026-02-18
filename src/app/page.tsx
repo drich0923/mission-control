@@ -131,9 +131,9 @@ function ActivityTab() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-white">Recent Activity</h2>
+        <h2 className="text-2xl font-bold text-white">Activity Ledger</h2>
         <div className="flex items-center gap-3">
-          <span className="text-sm text-gray-400">{activities.length} events</span>
+          <span className="text-sm text-gray-400">{activities.length} entries</span>
           <button onClick={loadActivity} className="text-xs text-gray-400 hover:text-white px-2 py-1 bg-gray-700 rounded">
             ↻ Refresh
           </button>
@@ -141,7 +141,7 @@ function ActivityTab() {
       </div>
 
       {isLoading && (
-        <div className="animate-pulse text-gray-500 text-sm py-6 text-center">Loading activity...</div>
+        <div className="animate-pulse text-gray-500 text-sm py-6 text-center">Loading ledger...</div>
       )}
 
       {!isLoading && activities.length === 0 && (
@@ -149,21 +149,82 @@ function ActivityTab() {
           <p>No activity yet — tasks will appear here as they're created and completed.</p>
         </div>
       )}
-      
-      <div className="space-y-3">
-        {activities.map((activity) => (
-          <div key={activity.id} className="bg-gray-800 rounded-lg p-4 border border-gray-700 hover:border-gray-600 transition-colors">
+
+      <div className="space-y-2">
+        {activities.map((entry) => (
+          <div key={entry.id} className="bg-gray-800 rounded-lg p-4 border border-gray-700 hover:border-gray-600 transition-colors">
             <div className="flex items-start gap-3">
-              <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${activity.color}`}>
-                <span className="text-lg">{activity.icon}</span>
+              {/* Icon */}
+              <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${entry.color}`}>
+                <span className="text-base">{entry.icon}</span>
               </div>
-              <div className="flex-1">
-                <p className="text-white font-medium">{activity.description}</p>
-                <div className="flex gap-2 text-sm text-gray-400 mt-1">
-                  <span>{activity.type}</span>
-                  {activity.assignee && <><span>•</span><span className="text-emerald-400">{activity.assignee}</span></>}
-                  <span>•</span>
-                  <span>{activity.timeRel}</span>
+
+              {/* Content */}
+              <div className="flex-1 min-w-0">
+                {/* Title row */}
+                <div className="flex items-start justify-between gap-2">
+                  <p className="text-white font-medium leading-snug">{entry.title}</p>
+                  <span className="text-xs text-gray-500 flex-shrink-0 mt-0.5">{entry.timeRel}</span>
+                </div>
+
+                {/* Source row */}
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1">
+                  <span className="text-xs text-gray-400">{entry.action}</span>
+
+                  {entry.callTitle && (
+                    <>
+                      <span className="text-gray-600">·</span>
+                      {entry.callUrl ? (
+                        <a href={entry.callUrl} target="_blank" rel="noreferrer"
+                           className="text-xs text-cyan-400 hover:text-cyan-300 underline underline-offset-2 truncate max-w-xs">
+                          📞 {entry.callTitle}
+                        </a>
+                      ) : (
+                        <span className="text-xs text-gray-400">{entry.callTitle}</span>
+                      )}
+                    </>
+                  )}
+
+                  {entry.slackUrl && (
+                    <>
+                      <span className="text-gray-600">·</span>
+                      <a href={entry.slackUrl} target="_blank" rel="noreferrer"
+                         className="text-xs text-yellow-400 hover:text-yellow-300 underline underline-offset-2">
+                        💬 Slack
+                      </a>
+                    </>
+                  )}
+
+                  {entry.docUrl && (
+                    <>
+                      <span className="text-gray-600">·</span>
+                      <a href={entry.docUrl} target="_blank" rel="noreferrer"
+                         className="text-xs text-blue-400 hover:text-blue-300 underline underline-offset-2">
+                        📄 Doc
+                      </a>
+                    </>
+                  )}
+                </div>
+
+                {/* Attribution */}
+                <div className="flex items-center gap-2 mt-1.5">
+                  <span className={`text-xs px-1.5 py-0.5 rounded ${
+                    entry.requestedBy === 'Dylan'
+                      ? 'bg-emerald-500/20 text-emerald-400'
+                      : 'bg-gray-600 text-gray-300'
+                  }`}>
+                    {entry.requestedBy === 'Dylan' ? '👤 Dylan' : '👥 Team'}
+                  </span>
+                  {entry.status && entry.status !== 'report' && (
+                    <span className={`text-xs px-1.5 py-0.5 rounded ${
+                      entry.status === 'completed' ? 'bg-green-500/20 text-green-400' :
+                      entry.status === 'from-calls' ? 'bg-cyan-500/20 text-cyan-400' :
+                      entry.status === 'in-progress' ? 'bg-yellow-500/20 text-yellow-400' :
+                      'bg-gray-600 text-gray-300'
+                    }`}>
+                      {entry.status.replace(/-/g, ' ')}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -335,20 +396,31 @@ function TasksTab() {
     loadTasks();
   }, []);
 
-  const normalizeTask = (task: any) => ({
-    id: task.id,
-    title: task.title,
-    description: task.description,
-    priority: task.priority,
-    status: task.status,
-    dueDate: task.due_date ?? task.dueDate ?? null,
-    source: task.source,
-    tags: task.tags || [],
-    assignee: task.assignee,
-    createdAt: task.created_at ?? task.createdAt,
-    completedAt: task.completed_at ?? task.completedAt ?? null,
-    updatedAt: task.updated_at ?? task.updatedAt ?? null,
-  });
+  const normalizeTask = (task: any) => {
+    const sd = task.source_data || task.sourceData || {};
+    return {
+      id: task.id,
+      title: task.title,
+      description: task.description,
+      priority: task.priority,
+      status: task.status,
+      dueDate: task.due_date ?? task.dueDate ?? null,
+      source: task.source,
+      tags: task.tags || [],
+      assignee: task.assignee,
+      createdAt: task.created_at ?? task.createdAt,
+      completedAt: task.completed_at ?? task.completedAt ?? null,
+      updatedAt: task.updated_at ?? task.updatedAt ?? null,
+      // source_data fields
+      sourceData: sd,
+      callTitle: sd.call_title ?? task.callTitle ?? null,
+      callDate: sd.call_date ?? task.callDate ?? null,
+      callUrl: sd.call_url ?? task.callUrl ?? null,
+      slackUrl: sd.slack_url ?? task.slackUrl ?? null,
+      docUrl: sd.doc_url ?? task.docUrl ?? null,
+      requestedBy: sd.requested_by ?? task.requestedBy ?? null,
+    };
+  };
 
   const groupTasksByStatus = (flatTasks: any[]) => {
     const grouped: any = {
@@ -640,6 +712,11 @@ function TasksTab() {
                 due_date: updatedTask.dueDate || null,
                 tags: updatedTask.tags || [],
                 completed_at: updatedTask.completedAt || null,
+                source_data: {
+                  ...(updatedTask.sourceData || {}),
+                  slack_url: updatedTask.slackUrl || null,
+                  doc_url: updatedTask.docUrl || null,
+                },
               }),
             }).catch((err) => console.error('Failed to sync task update:', err));
 
@@ -774,6 +851,28 @@ function TaskModal({ task, onClose, onUpdate, onDelete }: { task: any; onClose: 
                 </div>
               </div>
               
+              {/* Reference Links */}
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">💬 Slack Link</label>
+                <input
+                  type="url"
+                  value={editedTask.slackUrl || ""}
+                  onChange={(e) => setEditedTask({ ...editedTask, slackUrl: e.target.value })}
+                  placeholder="https://systemizedsales.slack.com/archives/..."
+                  className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">📄 Doc Link</label>
+                <input
+                  type="url"
+                  value={editedTask.docUrl || ""}
+                  onChange={(e) => setEditedTask({ ...editedTask, docUrl: e.target.value })}
+                  placeholder="https://docs.google.com/..."
+                  className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white text-sm"
+                />
+              </div>
+
               <div className="flex gap-2 pt-4">
                 <button
                   onClick={handleSave}
@@ -839,9 +938,37 @@ function TaskModal({ task, onClose, onUpdate, onDelete }: { task: any; onClose: 
               {task.callTitle && (
                 <div className="border-t border-gray-700 pt-4">
                   <h5 className="font-medium text-white mb-2">📞 Source Call</h5>
-                  <div className="text-sm text-gray-300">
-                    <p><span className="text-gray-400">Call:</span> {task.callTitle}</p>
-                    <p><span className="text-gray-400">Date:</span> {new Date(task.callDate).toLocaleDateString()}</p>
+                  <div className="text-sm space-y-1">
+                    {task.callUrl ? (
+                      <a href={task.callUrl} target="_blank" rel="noreferrer"
+                         className="text-cyan-400 hover:text-cyan-300 underline underline-offset-2">
+                        {task.callTitle}
+                      </a>
+                    ) : (
+                      <p className="text-gray-300">{task.callTitle}</p>
+                    )}
+                    {task.callDate && <p className="text-gray-400">{new Date(task.callDate).toLocaleDateString()}</p>}
+                  </div>
+                </div>
+              )}
+
+              {/* Reference Links */}
+              {(task.slackUrl || task.docUrl) && (
+                <div className="border-t border-gray-700 pt-4">
+                  <h5 className="font-medium text-white mb-2">🔗 References</h5>
+                  <div className="flex flex-wrap gap-3">
+                    {task.slackUrl && (
+                      <a href={task.slackUrl} target="_blank" rel="noreferrer"
+                         className="text-sm text-yellow-400 hover:text-yellow-300 underline underline-offset-2">
+                        💬 Slack Message
+                      </a>
+                    )}
+                    {task.docUrl && (
+                      <a href={task.docUrl} target="_blank" rel="noreferrer"
+                         className="text-sm text-blue-400 hover:text-blue-300 underline underline-offset-2">
+                        📄 Document
+                      </a>
+                    )}
                   </div>
                 </div>
               )}
