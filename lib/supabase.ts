@@ -21,6 +21,11 @@ export interface Task {
     call_date?: string
     call_url?: string
     transcript_excerpt?: string
+    participants?: any[]
+    requested_by?: string
+    slack_url?: string
+    doc_url?: string
+    [key: string]: any
   }
   created_at: string
   updated_at: string
