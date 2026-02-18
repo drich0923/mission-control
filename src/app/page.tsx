@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 
-type Tab = "activity" | "calendar" | "search" | "tasks";
+type Tab = "activity" | "calendar" | "search" | "tasks" | "usage";
 
 export default function MissionControl() {
   const [activeTab, setActiveTab] = useState<Tab>("activity");
@@ -59,6 +59,12 @@ export default function MissionControl() {
               icon="📋"
               label="Tasks"
             />
+            <TabButton
+              active={activeTab === "usage"}
+              onClick={() => setActiveTab("usage")}
+              icon="📊"
+              label="Usage & Spend"
+            />
           </div>
         </div>
       </nav>
@@ -69,6 +75,7 @@ export default function MissionControl() {
         {activeTab === "calendar" && <CalendarTab />}
         {activeTab === "search" && <SearchTab />}
         {activeTab === "tasks" && <TasksTab />}
+        {activeTab === "usage" && <UsageTab />}
       </main>
     </div>
   );
@@ -875,6 +882,203 @@ function TaskModal({ task, onClose, onUpdate, onDelete }: { task: any; onClose: 
             </div>
           )}
         </div>
+      </div>
+    </div>
+  );
+}
+// Usage & Spend Tab
+function UsageTab() {
+  const [usageData, setUsageData] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    loadUsageData();
+    const interval = setInterval(loadUsageData, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const loadUsageData = async () => {
+    try {
+      const response = await fetch('/api/usage');
+      if (response.ok) {
+        const data = await response.json();
+        setUsageData(data);
+      }
+    } catch (error) {
+      console.error('Error loading usage data:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="animate-pulse text-gray-400">Loading usage data...</div>
+      </div>
+    );
+  }
+
+  if (!usageData) {
+    return (
+      <div className="text-center py-12 text-gray-400">
+        <p>Failed to load usage data.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-white">Usage & Spend</h2>
+          <p className="text-gray-400">Token consumption and cost across all agents</p>
+        </div>
+        <span className="text-sm text-gray-400">Model: {usageData.model}</span>
+      </div>
+
+      {/* Overview Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="bg-gray-800 rounded-lg p-4 flex items-center gap-3">
+          <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center">
+            <span className="text-blue-400 text-lg">🔢</span>
+          </div>
+          <div>
+            <p className="text-sm text-gray-400">Tokens Today</p>
+            <p className="text-xl font-bold text-white">
+              {usageData.dailyStats.totalTokensUsed > 0 ? usageData.dailyStats.totalTokensUsed.toLocaleString() : "—"}
+            </p>
+          </div>
+        </div>
+        <div className="bg-gray-800 rounded-lg p-4 flex items-center gap-3">
+          <div className="w-10 h-10 bg-green-500/20 rounded-lg flex items-center justify-center">
+            <span className="text-green-400 text-lg">💰</span>
+          </div>
+          <div>
+            <p className="text-sm text-gray-400">Est. Daily Cost</p>
+            <p className="text-xl font-bold text-white">
+              {usageData.dailyStats.estimatedCost > 0 ? `$${usageData.dailyStats.estimatedCost.toFixed(2)}` : "—"}
+            </p>
+          </div>
+        </div>
+        <div className="bg-gray-800 rounded-lg p-4 flex items-center gap-3">
+          <div className="w-10 h-10 bg-yellow-500/20 rounded-lg flex items-center justify-center">
+            <span className="text-yellow-400 text-lg">⚡</span>
+          </div>
+          <div>
+            <p className="text-sm text-gray-400">Active Agents</p>
+            <p className="text-xl font-bold text-white">{usageData.totalSessions}</p>
+          </div>
+        </div>
+        <div className="bg-gray-800 rounded-lg p-4 flex items-center gap-3">
+          <div className="w-10 h-10 bg-red-500/20 rounded-lg flex items-center justify-center">
+            <span className="text-red-400 text-lg">🔧</span>
+          </div>
+          <div>
+            <p className="text-sm text-gray-400">Compactions Today</p>
+            <p className="text-xl font-bold text-white">{usageData.dailyStats.compactionEvents}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Alerts */}
+      {usageData.alerts && usageData.alerts.length > 0 && (
+        <div className="bg-gray-800 rounded-lg p-6">
+          <h2 className="text-lg font-semibold text-white mb-4">🚨 System Alerts</h2>
+          <div className="space-y-3">
+            {usageData.alerts.map((alert: any, index: number) => (
+              <div key={index} className={`p-3 rounded-lg border-l-4 ${
+                alert.severity === 'high' ? 'bg-red-900/20 border-red-500' :
+                alert.severity === 'medium' ? 'bg-yellow-900/20 border-yellow-500' :
+                'bg-blue-900/20 border-blue-500'
+              }`}>
+                <p className="text-white text-sm">{alert.message}</p>
+                <p className="text-xs text-gray-400 mt-1">{new Date(alert.timestamp).toLocaleString()}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Agent Breakdown */}
+      <div className="bg-gray-800 rounded-lg p-6">
+        <h2 className="text-lg font-semibold text-white mb-4">💻 Agent Breakdown</h2>
+        <div className="space-y-3">
+          {usageData.sessions.map((session: any, index: number) => (
+            <div key={index} className="bg-gray-700 rounded-lg p-4">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-3">
+                  <div className={`w-3 h-3 rounded-full ${
+                    session.status === 'healthy' ? 'bg-green-500' :
+                    session.status === 'active' ? 'bg-blue-500' :
+                    'bg-gray-500'
+                  }`}></div>
+                  <h3 className="font-medium text-white">{session.name}</h3>
+                  <span className="text-xs bg-gray-600 text-gray-300 px-2 py-1 rounded">{session.type}</span>
+                </div>
+                <div className="text-right">
+                  <p className="text-white font-medium">
+                    {session.tokens > 0 ? `${session.tokens.toLocaleString()} tokens` : "No data yet"}
+                  </p>
+                  <p className="text-xs text-gray-400">{Math.round(session.utilization * 100)}% utilization</p>
+                </div>
+              </div>
+              <div className="w-full bg-gray-600 rounded-full h-2">
+                <div
+                  className={`h-2 rounded-full ${
+                    session.utilization > 0.8 ? 'bg-red-500' :
+                    session.utilization > 0.6 ? 'bg-yellow-500' :
+                    'bg-emerald-500'
+                  }`}
+                  style={{ width: `${Math.max(session.utilization * 100, session.tokens > 0 ? 2 : 0)}%` }}
+                ></div>
+              </div>
+              <div className="flex justify-between text-xs text-gray-400 mt-1">
+                <span>{session.model}</span>
+                {session.compactions > 0 && (
+                  <span className="text-yellow-400">{session.compactions} compactions</span>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* 7-Day Trend */}
+      {usageData.trends.last7Days.length > 0 ? (
+        <div className="bg-gray-800 rounded-lg p-6">
+          <h2 className="text-lg font-semibold text-white mb-4">📈 7-Day Trend</h2>
+          <div className="space-y-2">
+            {usageData.trends.last7Days.map((day: any, index: number) => (
+              <div key={index} className="flex items-center gap-4 py-2 border-b border-gray-700 last:border-b-0">
+                <span className="text-gray-400 text-sm w-24">
+                  {new Date(day.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                </span>
+                <div className="flex-1">
+                  <div className="w-full bg-gray-600 rounded-full h-2">
+                    <div
+                      className="bg-emerald-500 h-2 rounded-full"
+                      style={{ width: `${Math.min((day.tokens / 200000) * 100, 100)}%` }}
+                    ></div>
+                  </div>
+                </div>
+                <div className="text-right w-32">
+                  <p className="text-white text-sm">{day.tokens.toLocaleString()}</p>
+                  <p className="text-xs text-gray-400">${day.cost}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div className="bg-gray-800 rounded-lg p-6 text-center">
+          <p className="text-gray-400 text-sm">📈 7-day trend will appear once the real data pipeline is connected.</p>
+          <p className="text-gray-500 text-xs mt-2">Charlie's weekly usage report (Mondays 9am ET) is the data source — needs a Supabase write step added.</p>
+        </div>
+      )}
+
+      <div className="text-center text-xs text-gray-500">
+        Last updated: {new Date(usageData.timestamp).toLocaleString()} · Auto-refresh every 30s
       </div>
     </div>
   );
